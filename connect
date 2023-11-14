@@ -1,0 +1,57 @@
+require 'net/http' #Ruby's built-in Net::HTTP library
+require 'uri' #Ruby's built-in Uniform Resource Identifier to parse and construct URIs
+require 'json' #Ruby's built-in json module to parse JSON files
+
+# Replace with your client credentials
+client_id = 'YOUR_CLIENT_ID'
+client_secret = 'YOUR_CLIENT_SECRET'
+realm = 'realm_name' # realm name is in all lower case letters
+character = 'character_name' # character name is in all lower case letters
+
+# Function to get the access token
+def get_access_token(client_id, client_secret)
+  uri = URI('https://us.battle.net/oauth/token')
+  request = Net::HTTP::Post.new(uri)
+  request.basic_auth(client_id, client_secret)
+  request.set_form_data('grant_type' => 'client_credentials')
+
+  response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
+    http.request(request)
+  end
+  if response.is_a?(Net::HTTPSuccess)
+    JSON.parse(response.body)['access_token']
+  else
+    puts "Error: #{response.code} - #{response.message}"
+    nil
+  end
+end
+
+# Function to make a generic API call
+def make_api_call(url, access_token)
+  uri = URI(url + "&access_token=#{access_token}")
+
+  response = Net::HTTP.get_response(uri)
+
+  if response.is_a?(Net::HTTPSuccess)
+    JSON.parse(response.body)
+  else
+    puts "Error: #{response.code} - #{response.message}"
+    nil
+  end
+end
+
+# Obtain an Access Token
+access_token = get_access_token(client_id, client_secret)
+puts access_token
+
+# Equipment Data
+equipment_data_url = "https://us.api.blizzard.com/profile/wow/character/#{realm}/#{character}/equipment?namespace=profile-classic-us&locale=en_US"
+equipment_data = make_api_call(equipment_data_url, access_token)
+puts "Equipment Data:"
+puts equipment_data
+
+# Character Specialization
+character_specialization_url = "https://us.api.blizzard.com/profile/wow/character/#{realm}/#{character}/specializations?namespace=profile-classic-us&locale=en_US"
+character_specialization = make_api_call(character_specialization_url, access_token)
+puts "Character Specialization:"
+puts character_specialization
